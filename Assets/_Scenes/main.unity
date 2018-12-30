@@ -1132,6 +1132,8 @@ MonoBehaviour:
   bodyPrefab: {fileID: 184960, guid: b1a94fb9a77b31d46a96b17c54653ab1, type: 3}
   systemType: 0
   nodeCountLimit: 0
+  showCenterMass: 0
+  centerMassNode: {fileID: 0}
 --- !u!4 &787697906
 Transform:
   m_ObjectHideFlags: 0
@@ -1322,7 +1324,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1836152105}
   m_Direction: 0
   m_MinValue: 6
-  m_MaxValue: 50
+  m_MaxValue: 75
   m_WholeNumbers: 1
   m_Value: 15
   m_OnValueChanged:

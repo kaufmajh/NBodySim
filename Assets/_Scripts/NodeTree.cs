@@ -11,7 +11,7 @@ namespace Assets.Barnes_Hut_Algorithm
     {
         private Body averageBody = null;
         public int bodyCount = 0;
-
+        
         private Vector3 center;
         private float size;
         private int level;
@@ -27,7 +27,7 @@ namespace Assets.Barnes_Hut_Algorithm
         /// <summary>
         /// The location of the center of TotalMass of the bodies contained in the tree. 
         /// </summary>
-        private Vector3 _centerOfMass = Vector3.zero;
+        public Vector3 _centerOfMass = Vector3.zero;
 
         /// <summary>
         /// The tolerance of the TotalMass grouping approximation in the simulation. A 
@@ -63,13 +63,13 @@ namespace Assets.Barnes_Hut_Algorithm
 
         public NodeTree()
         {
-
+            
         }
         /// <summary>
         /// Constructs a tree with the given width located about the origin.
         /// </summary>
         /// <param name="width">The width of the new tree.</param>
-        public NodeTree(double width)
+        public NodeTree(double width) : this()
         {
             _width = width;
         }
@@ -128,15 +128,20 @@ namespace Assets.Barnes_Hut_Algorithm
         public void Add(Body body)
         {
             _centerOfMass = ((float)TotalMass * _centerOfMass + body.mass * body.position) / (float)(TotalMass + body.mass);
+            
             TotalMass += body.mass;
             bodyCount++;
             if (bodyCount == 1)
+            {
                 _firstBody = body;
+            }
             else
             {
                 AddToSubtree(body);
                 if (bodyCount == 2)
+                {
                     AddToSubtree(_firstBody);
+                }
             }
         }
 

@@ -12,6 +12,8 @@ public class BoardManager : MonoBehaviour
     public GameObject bodyPrefab;
     public SystemType systemType = SystemType.Stock;
     public int nodeCountLimit = 16;
+    public bool showCenterMass = false;
+    public GameObject centerMassNode;
 
     /// <summary>
     /// The gravitational constant. 
@@ -33,6 +35,7 @@ public class BoardManager : MonoBehaviour
 	private NodeTree nodeTree;
     private List<Quadrant> quads = new List<Quadrant>();
     private CameraScript cameraScript;
+
 
     void Start ()
 	{
@@ -63,6 +66,10 @@ public class BoardManager : MonoBehaviour
         nodeCountLimit = 16;
         cameraScript = Camera.main.GetComponent<CameraScript>();
         bodies.ForEach(b => b.RemoveObject());
+        centerMassNode = GameObject.Instantiate(bodyPrefab, Vector3.zero, Quaternion.identity);
+        centerMassNode.GetComponent<SpriteRenderer>().color = Color.grey;
+        centerMassNode.SetActive(false);
+        centerMassNode.GetComponent<TrailRenderer>().enabled = false;
     }
 
     /// <summary>
@@ -111,6 +118,8 @@ public class BoardManager : MonoBehaviour
                 // Update frame counter. 
                 if (nodeTree.bodyCount > 0)
                 {
+                    centerMassNode.transform.position = nodeTree._centerOfMass;
+                    
                     framecount++;
                 }
             }
@@ -158,6 +167,7 @@ public class BoardManager : MonoBehaviour
         // Reset frames elapsed. 
         framecount = 0;
         cameraScript.followObject = null;
+        centerMassNode.SetActive(false);
 
         lock (_bodyLock)
         {
@@ -191,9 +201,7 @@ public class BoardManager : MonoBehaviour
                             var distance = PseudoRandom.Float(1e6f);
                             double angle = PseudoRandom.Double(Math.PI * 2);
                             var location = new Vector3((float)Math.Cos(angle) * distance, PseudoRandom.Float(-2e5f, 2e5f), (float)Math.Sin(angle) * distance);
-                            //bodies[i] = new Body(location, TotalMass, velocity);
                             var dotGO = GameObject.Instantiate(bodyPrefab, location, Quaternion.identity) as GameObject;
-                            //dotGO.GetComponent<Rigidbody>().TotalMass = (float)TotalMass;
                             bodies[i] = new Body(dotGO, Vector3.zero);
                         }
                     }
@@ -246,9 +254,10 @@ public class BoardManager : MonoBehaviour
                 // Generate orbital system. 
                 case SystemType.OrbitalSystem:
                     {
-                        
+                        var mainBodyScale = new Vector3(5, 5, 5);
                         var centerTotalMass = 3000;
                         var centerBody = GameObject.Instantiate(bodyPrefab, new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                        centerBody.transform.localScale = mainBodyScale;
                         bodies.Add(new Body(centerBody, Vector3.zero, centerTotalMass));
                         cameraScript.followObject = centerBody.transform;
 
@@ -264,6 +273,46 @@ public class BoardManager : MonoBehaviour
                             dotGO.transform.localScale = new Vector3(goScale,goScale,goScale);
                             
                             bodies.Add(new Body(dotGO,velocity,(float)mass));
+                        }
+                    }
+                    break;
+
+                // Generate binary system. 
+                case SystemType.BinarySystem:
+                    {
+                        centerMassNode.SetActive(true);
+                        cameraScript.followObject = centerMassNode.transform;
+                        var mainBodyScale = new Vector3(3, 3, 3);
+                        var mass1 = PseudoRandom.Float(900) + 100;
+                        var mass2 = PseudoRandom.Float(900) + 100;
+                        var angle0 = (float)PseudoRandom.Double(Math.PI * 2);
+                        var distance0 = PseudoRandom.Float(10) + 30;
+                        var distance1 = distance0 / 2;
+                        var distance2 = distance0 / 2;
+                        var location1 = new Vector3((float)Math.Cos(angle0) * distance1, 0, (float)Math.Sin(angle0) * distance1);
+                        var location2 = new Vector3((float)-Math.Cos(angle0) * distance2, 0, (float)-Math.Sin(angle0) * distance2);
+                        var velocity1 = Vector3.Cross(location1, new Vector3(0f, 0f, 1f)) / Vector3.Cross(location1, new Vector3(0f, 0f, 1f)).magnitude;
+                        var velocity2 = Vector3.Cross(location2, new Vector3(0f, 0f, 1f)) / Vector3.Cross(location2, new Vector3(0f, 0f, 1f)).magnitude;
+                        var dotGO = GameObject.Instantiate(bodyPrefab, location1, Quaternion.identity) as GameObject;
+                        dotGO.transform.localScale = mainBodyScale;
+                        bodies.Add(new Body(dotGO, velocity1, mass1));
+                        dotGO = GameObject.Instantiate(bodyPrefab, location2, Quaternion.identity) as GameObject;
+                        dotGO.transform.localScale = mainBodyScale;
+                        bodies.Add(new Body(dotGO, velocity2, mass2));
+
+                        for (int i = 2; i < nodeCountLimit; i++)
+                        {
+                            var distance = PseudoRandom.Float(100);
+                            var angle = (float)PseudoRandom.Double(Math.PI * 2);
+                            var location = new Vector3((float)Math.Cos(angle) * distance, PseudoRandom.Float(-20f, 20f), (float)Math.Sin(angle) * distance);
+                            var mass = PseudoRandom.Float(10f) + 5;
+                            var speed = Math.Sqrt((mass1 + mass2) * (mass1 + mass2) * G / ((mass1 + mass2 + mass) * distance));
+                            speed /= distance >= distance0 / 2 ? 1 : (distance0 / 2 / distance);
+                            var velocity = Vector3.Cross(location, new Vector3(0f, 0f, 1f)) / Vector3.Cross(location, new Vector3(0f, 0f, 1f)).magnitude;
+                            dotGO = GameObject.Instantiate(bodyPrefab, location, Quaternion.identity) as GameObject;
+                            var goScale = mass / 15;
+                            dotGO.transform.localScale = new Vector3(goScale, goScale, goScale);
+                            bodies.Add(new Body(dotGO, velocity, mass));
                         }
                     }
                     break;
