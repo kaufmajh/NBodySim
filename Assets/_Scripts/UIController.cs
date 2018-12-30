@@ -12,6 +12,7 @@ public class UIController : MonoBehaviour
     public Button generateButton;
     public Toggle statusToggle;
     public Slider zoomSlider;
+    public InputField nodeCountField;
     private SystemType defaultSystemType = SystemType.Stock;
     private Camera mainCamera;
 
@@ -38,6 +39,8 @@ public class UIController : MonoBehaviour
         statusToggle.interactable = false;
 
         zoomSlider.onValueChanged.AddListener(delegate { HandleZoomChange(); });
+
+        nodeCountField.text = "16";
     }
 
     // Update is called once per frame

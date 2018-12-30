@@ -152,6 +152,7 @@ public class BoardManager : MonoBehaviour
     {
         ResetSim();
         var selectedType = GetComponent<UIController>().SystemType;
+        nodeCountLimit = int.Parse(GetComponent<UIController>().nodeCountField.text);
         Generate(selectedType);
     }
     public void HandleButtonStatus()
@@ -180,15 +181,29 @@ public class BoardManager : MonoBehaviour
                     bodies.Clear();
                     break;
                 case SystemType.Stock:
+                    centerMassNode.SetActive(true);
+                    cameraScript.followObject = centerMassNode.transform;
                     var rowLimit = (int)Math.Ceiling(Math.Sqrt(nodeCountLimit))/2;
+                    var massMax = 50f;
+                    var randomVelocity = true;
+                    var velocityRange = new float[] { -.5f, .5f };
                     for (int i = -1*rowLimit; i < rowLimit; i++)
                     {
                         for (int j = -1* rowLimit; j < rowLimit; j++)
                         {
-                            var theMass = UnityEngine.Random.Range(1f, 8f);
-                            var dotGO = Instantiate(bodyPrefab, new Vector3(i * 2, j * 2, 0), Quaternion.identity) as GameObject;
-                            dotGO.transform.localScale = new Vector3(1 / theMass, 1 / theMass, 1 / theMass);
-                            bodies.Add(new Body(dotGO,Vector3.zero,theMass));
+                            var velocity = Vector3.zero;
+                            var position = new Vector3(i * 2, j * 2, 0);
+                            var theMass = UnityEngine.Random.Range(1f, massMax);
+                            var dotGO = Instantiate(bodyPrefab, position, Quaternion.identity) as GameObject;
+                            dotGO.transform.localScale = new Vector3(theMass / massMax, theMass / massMax, theMass/ massMax);
+                            var speed = PseudoRandom.Float(-5f, 5f);
+                            if (randomVelocity)
+                            {
+                                velocity = new Vector3(UnityEngine.Random.Range(velocityRange[0], velocityRange[1]), 
+                                    UnityEngine.Random.Range(velocityRange[0], velocityRange[1]), 
+                                    UnityEngine.Random.Range(velocityRange[0], velocityRange[1]));
+                            }
+                            bodies.Add(new Body(dotGO,velocity,theMass));
                         }
                     }
                     break;
@@ -314,6 +329,86 @@ public class BoardManager : MonoBehaviour
                             dotGO.transform.localScale = new Vector3(goScale, goScale, goScale);
                             bodies.Add(new Body(dotGO, velocity, mass));
                         }
+                    }
+                    break;
+
+                // Generate planetary system. 
+                case SystemType.PlanetarySystem:
+                    {
+                        var mainBodyScale = new Vector3(3, 3, 3);
+                        var centerTotalMass = 5000;
+                        var centerBody = GameObject.Instantiate(bodyPrefab, new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                        centerBody.transform.localScale = mainBodyScale;
+                        bodies.Add(new Body(centerBody, Vector3.zero, centerTotalMass));
+                        cameraScript.followObject = centerBody.transform;
+                        //bodies[0] = new Body(1e10);
+                        int planets = PseudoRandom.Int32(10) + 5;
+                        int planetsWithRings = PseudoRandom.Int32(1) + 1;
+                        int k = 1;
+                        for (int i = 1; i < planets + 1 && k < nodeCountLimit; i++)
+                        {
+                            int planetK = k;
+                            var distance = PseudoRandom.Float(100) + 10 + bodies[0].Radius;
+                            var angle = (float)PseudoRandom.Double(Math.PI * 2);
+                            Vector3 location = new Vector3((float)(Math.Cos(angle) * distance), PseudoRandom.Float(-20, 20), (float)(Math.Sin(angle) * distance));
+                            var mass = PseudoRandom.Float(300) + 75;
+                            var speed = Math.Sqrt(bodies[0].mass * bodies[0].mass * G / ((bodies[0].mass + mass) * distance));
+                            var velocity = Vector3.Cross(location, new Vector3(0f, 0f, 1f)) / Vector3.Cross(location, new Vector3(0f, 0f, 1f)).magnitude;
+                            var dotGO = GameObject.Instantiate(bodyPrefab, location, Quaternion.identity) as GameObject;
+                            var goScale = mass / 375;
+                            dotGO.transform.localScale = new Vector3(goScale, goScale, goScale);
+                            bodies.Add(new Body(dotGO, velocity, mass));
+                            k++;
+                            // Generate rings.
+                            const int RingParticles = 100;
+                            if (--planetsWithRings >= 0 && k < nodeCountLimit - RingParticles)
+                            {
+                                for (int j = 0; j < RingParticles; j++)
+                                {
+                                    var ringDistance = PseudoRandom.Float(5) + 50 + bodies[planetK].Radius;
+                                    var ringAngle = (float)PseudoRandom.Double(Math.PI * 2);
+                                    Vector3 ringLocation = location + new Vector3((float)(Math.Cos(ringAngle) * ringDistance), 0, (float)(Math.Sin(ringAngle) * ringDistance));
+                                    var ringMass = PseudoRandom.Float(70) + 10;
+                                    var ringSpeed = Math.Sqrt(bodies[planetK].mass * bodies[planetK].mass * G / ((bodies[planetK].mass + ringMass) * ringDistance));
+                                    var ringVelocity = Vector3.Cross(location - ringLocation, new Vector3(0f, 0f, 1f)) / Vector3.Cross(location - ringLocation, new Vector3(0f, 0f, 1f)).magnitude + velocity;
+                                    var ringGo = GameObject.Instantiate(bodyPrefab, ringLocation, Quaternion.identity) as GameObject;
+                                    var ringGOScale = mass / 80;
+                                    ringGo.transform.localScale = new Vector3(ringGOScale, ringGOScale, ringGOScale);
+                                    bodies.Add(new Body(ringGo, ringVelocity, ringMass));
+                                    k++;
+                                }
+                                continue;
+                            }
+
+                            // Generate moons. 
+                            int moons = PseudoRandom.Int32(4);
+                            while (moons-- > 0 && k < nodeCountLimit)
+                            {
+                                var moonDistance = PseudoRandom.Double(100) + 50 + bodies[planetK].Radius;
+                                var moonAngle = PseudoRandom.Double(Math.PI * 2);
+                                Vector3 moonLocation = location + new Vector3((float)(Math.Cos(moonAngle) * moonDistance), PseudoRandom.Float(-20, 20), (float)(Math.Sin(moonAngle) * moonDistance));
+                                var moonMass = PseudoRandom.Float(140) + 50;
+                                var moonSpeed = Math.Sqrt(bodies[planetK].mass * bodies[planetK].mass * G / ((bodies[planetK].mass + moonMass) * moonDistance));
+                                var moonVelocity = Vector3.Cross(moonLocation - location, new Vector3(0f, 0f, 1f)) / Vector3.Cross(moonLocation - location, new Vector3(0f, 0f, 1f)).magnitude + velocity;
+                                var moonGo = GameObject.Instantiate(bodyPrefab, moonLocation, Quaternion.identity) as GameObject;
+                                var moonScale = mass / 150;
+                                moonGo.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
+                                bodies.Add(new Body(moonGo, moonVelocity, moonMass));
+                                k++;
+                            }
+                        }
+
+                        // Generate asteroid belt.
+                        //while (k < nodeCountLimit)
+                        //{
+                        //    var asteroidDistance = PseudoRandom.Double(4e5) + 1e6;
+                        //    var asteroidAngle = PseudoRandom.Double(Math.PI * 2);
+                        //    Vector3 asteroidLocation = new Vector3(Math.Cos(asteroidAngle) * asteroidDistance, PseudoRandom.Double(-1e3, 1e3), Math.Sin(asteroidAngle) * asteroidDistance);
+                        //    var asteroidMass = PseudoRandom.Double(1e6) + 3e4;
+                        //    var asteroidSpeed = Math.Sqrt(bodies[0].Mass * bodies[0].Mass * G / ((bodies[0].Mass + asteroidMass) * asteroidDistance));
+                        //    Vector3 asteroidVelocity = Vector3.Cross(asteroidLocation, Vector3.YAxis).Unit() * asteroidSpeed;
+                        //    bodies[k++] = new Body(asteroidLocation, asteroidMass, asteroidVelocity);
+                        //}
                     }
                     break;
             }
