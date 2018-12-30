@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NBodyUniverse;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -175,15 +176,15 @@ namespace Assets.Barnes_Hut_Algorithm
         }
 
         // convert to generic oct/quad, maybe just rename?
-        public void GetAllQuads(List<Quad> quads)
+        public void GetAllQuads(List<Quadrant> quads)
         {
             if (averageBody == null)
             {
-                quads.Add(new Quad(center, size, level, Vector3.zero, 0));
+                quads.Add(new Quadrant(center, size, level, Vector3.zero, 0));
             }
             else
             {
-                quads.Add(new Quad(center, size, level, averageBody.position, averageBody.mass));
+                quads.Add(new Quadrant(center, size, level, averageBody.position, averageBody.mass));
             }
 
             if (subTrees[0] == null)

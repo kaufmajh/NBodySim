@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using Assets.Barnes_Hut_Algorithm.Extensions;
+using NBodyUniverse;
 
 public class Body  {
 
@@ -10,7 +11,7 @@ public class Body  {
 	public Vector3 position;
 	private Vector3 velocity;
 	public Vector3 acceleration;
-	private float G = 0.04f;
+	
 	public Guid InstanceID {get; private set;}
 
     /// <summary>
@@ -34,11 +35,12 @@ public class Body  {
         }
     }
 
-    public Body(GameObject _dot, float _mass = 2f){
+    public Body(GameObject _dot, Vector3 _velocity, float _mass = 2f)
+    {
 		this.InstanceID = Guid.NewGuid();
 		mass = _mass;
 		dot = _dot;
-		velocity = Vector3.zero;
+		velocity = _velocity;
 		acceleration = Vector3.zero;
 		if(_dot != null)
 			position = CopyVector(_dot.transform.position);
@@ -50,18 +52,7 @@ public class Body  {
             _locationHistory[i] = position;
         }
     }
-
-	//public void update(){
-		//velocity += acceleration;
-		//position += velocity;
-		//acceleration = Vector3.zero;
-
-		//dot.transform.position = CopyVector(position);
-	//}
-
-	public void interact(Body b){
-		this.applyForce(b.attract(this));
-	}
+    
 
     /// <summary>
     /// Updates the properties of the body such as location, velocity, and 
@@ -101,17 +92,7 @@ public class Body  {
     public void applyForce(Vector3 force){
 		acceleration += new Vector3(force.x/mass,force.y/mass,force.z/mass);
 	}
-
-	public Vector3 attract(Body b){
-		Vector3 forc = position - b.position;
-		float distance = forc.magnitude;
-		distance = Mathf.Clamp(distance,50f,250f);
-
-		forc.Normalize();
-		var strength = (G*mass*mass)/(distance*distance);
-		return new Vector3(forc.x* strength, forc.y* strength, forc.z* strength);
-
-	}
+    
 
 	public void addBody(Body body){
 		float m = mass + body.mass;
@@ -124,6 +105,35 @@ public class Body  {
 	private Vector3 CopyVector(Vector3 vec) {
 		return new Vector3(vec.x,vec.y,vec.z);
 	}
+
+    /// <summary>
+    /// Rotates the body along an arbitrary axis. 
+    /// </summary>
+    /// <param name="point">The starting point for the axis of rotation.</param>
+    /// <param name="direction">The direction for the axis of rotation</param>
+    /// <param name="angle">The angle to rotate by.</param>
+    public void Rotate(Vector3 point, Vector3 direction, float angle)
+    {
+        position = position.Rotate(point, direction, angle);
+
+        // To rotate velocity and acceleration we have to adjust for the starting 
+        // point for the axis of rotation. This way the vectors are effectively 
+        // rotated about their own starting points. 
+        velocity += point;
+        velocity = velocity.Rotate(point, direction, angle);
+        velocity -= point;
+        acceleration += point;
+        acceleration = acceleration.Rotate(point, direction, angle);
+        acceleration -= point;
+
+        if (false)
+        {
+            for (int i = 0; i < _locationHistory.Length; i++)
+            {
+                _locationHistory[i] = _locationHistory[i].Rotate(point, direction, angle);
+            }
+        }
+    }
 
     /// <summary>
     /// Returns the radius defined for the given mass value. 

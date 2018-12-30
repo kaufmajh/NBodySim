@@ -10,6 +10,6 @@ namespace Assets.Barnes_Hut_Algorithm
         void Add(Body body);
         void AddToSubtree(Body body);
         void Accelerate(Body body);
-        void GetAllQuads(List<Quad> quads);
+        void GetAllQuads(List<Quadrant> quads);
     }
 }
