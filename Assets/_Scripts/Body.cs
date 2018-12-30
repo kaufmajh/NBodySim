@@ -42,10 +42,21 @@ public class Body  {
 		dot = _dot;
 		velocity = _velocity;
 		acceleration = Vector3.zero;
-		if(_dot != null)
-			position = CopyVector(_dot.transform.position);
-		 else 
-			position = Vector3.zero;
+
+        if (_dot != null)
+        {
+            position = CopyVector(_dot.transform.position);
+        }
+        else
+        {
+            position = Vector3.zero;
+        }
+
+        var trailRenderer = dot.GetComponent<TrailRenderer>();
+        trailRenderer.startWidth = dot.transform.localScale.x * .2f;
+        trailRenderer.endWidth = 0f;
+        trailRenderer.startColor = Color.Lerp(Color.blue, Color.magenta, dot.transform.localScale.x);//Color.magenta;
+        trailRenderer.endColor = Color.cyan;
 
         for (int i = 0; i < _locationHistory.Length; i++)
         {
@@ -147,5 +158,10 @@ public class Body  {
         // volume of a sphere to solve for the radius. The end result is arbitrarily 
         // scaled and added to a constant so the Body is generally visible. 
         return 10 * Math.Pow(3 * mass / (4 * Math.PI), 1 / 3.0) + 10;
+    }
+
+    public void RemoveObject()
+    {
+        GameObject.Destroy(dot);
     }
 }

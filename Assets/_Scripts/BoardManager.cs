@@ -36,14 +36,7 @@ public class BoardManager : MonoBehaviour
 
     void Start ()
 	{
-		boundary = new Boundary (nodeCountLimit);
-		compute = false;
-		bruteForce = false;
-		displayQuad = false;
-		size = bodies.Count;
-        systemType = SystemType.Stock;
-        nodeCountLimit = 16;
-        cameraScript = Camera.main.GetComponent<CameraScript>();
+        ResetSim();
     }
 
 	// Update is called once per frame
@@ -58,6 +51,19 @@ public class BoardManager : MonoBehaviour
         stopwatch.Stop();
 		stopwatch.Reset();
 	}
+
+    public void ResetSim()
+    {
+        boundary = new Boundary(nodeCountLimit);
+        compute = false;
+        bruteForce = false;
+        displayQuad = false;
+        size = bodies.Count;
+        systemType = SystemType.Stock;
+        nodeCountLimit = 16;
+        cameraScript = Camera.main.GetComponent<CameraScript>();
+        bodies.ForEach(b => b.RemoveObject());
+    }
 
     /// <summary>
     /// Advances the simulation by one frame if it is active. 
@@ -135,6 +141,7 @@ public class BoardManager : MonoBehaviour
 
     public void HandleButtonGenerate()
     {
+        ResetSim();
         var selectedType = GetComponent<UIController>().SystemType;
         Generate(selectedType);
     }
